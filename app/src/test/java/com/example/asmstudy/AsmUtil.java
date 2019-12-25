@@ -12,11 +12,12 @@ import org.objectweb.asm.commons.Method;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
 /**
+ * ASM插桩测试类 用来测试
+ *
  * author: DragonForest
  * time: 2019/12/23
  */
@@ -189,7 +190,7 @@ public class AsmUtil {
                 storeLocal(end);
 
                 getStatic(Type.getType("Ljava/lang/System;"), "out",
-                        Type.getType("Ljava/io/PrintStream"));
+                        Type.getType("Ljava/io/PrintStream;"));
                 // 分配内存
                 newInstance(Type.getType("Ljava/lang/StringBuilder;"));
                 dup();

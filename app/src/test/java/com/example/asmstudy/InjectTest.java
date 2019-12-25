@@ -12,19 +12,21 @@ public class InjectTest {
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
+
+        InjectTest injectTest = new InjectTest();
+        injectTest.sayGo();
     }
 
 
-
-    public void sayHello(){
+    public void sayHello() {
         long start = System.currentTimeMillis();
         System.out.println("大家好");
         long end = System.currentTimeMillis();
-        System.out.println("方法耗时："+(end-start));
+        System.out.println("方法耗时：" + (end - start));
     }
 
     @ASMTest
-    public void sayGo(){
+    public void sayGo() {
         System.out.println("大家好aaaaaaaaaaaa");
     }
 }

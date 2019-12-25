@@ -1,0 +1,30 @@
+apply plugin: 'groovy'
+
+dependencies {
+    implementation gradleApi()
+    implementation localGroovy()
+
+    // transform依赖
+    // gradle 1.5
+//    implementation 'com.android.tools.build:transfrom-api:1.5.0'
+    // gradle 2.0开始
+    implementation 'com.android.tools.build:gradle:3.5.2'
+    implementation 'com.android.tools.build:gradle-api:3.5.2'
+
+    // asm依赖
+    implementation 'org.ow2.asm:asm:7.1'
+    implementation 'org.ow2.asm:asm-util:7.1'
+    implementation 'org.ow2.asm:asm-commons:7.1'
+}
+
+repositories {
+    mavenCentral()
+    jcenter()
+    google()
+}
+
+// 指定编译的编码 不然有中文的话会出现  ’编码GBK的不可映射字符‘
+tasks.withType(JavaCompile) {
+    options.encoding = "UTF-8"
+    println('使用utf8编译')
+}
