@@ -17,7 +17,7 @@ public class ExampleUnitTest {
 
     @Test
     public void testASM(){
-        AsmUtil asmUtil=new AsmUtil();
+        AsmUtil2 asmUtil=new AsmUtil2();
         asmUtil.inject();
     }
 }

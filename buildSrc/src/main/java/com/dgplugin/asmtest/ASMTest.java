@@ -1,4 +1,4 @@
-package com.dgplugin;
+package com.dgplugin.asmtest;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

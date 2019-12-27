@@ -10,24 +10,32 @@ import com.android.build.api.transform.TransformInput;
 import com.android.build.api.transform.TransformInvocation;
 import com.android.build.api.transform.TransformOutputProvider;
 import com.android.build.gradle.internal.pipeline.TransformManager;
-import com.dgplugin.asmtest.AsmUtil;
+import com.dgplugin.activity_record.HookActivityUtil;
 
 import org.apache.commons.io.FileUtils;
+import org.apache.commons.io.IOUtils;
 import org.gradle.api.Project;
 
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
+import java.util.Enumeration;
 import java.util.Set;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
+import java.util.jar.JarOutputStream;
+import java.util.zip.ZipEntry;
 
 /**
  * author: DragonForest
  * time: 2019/12/24
  */
-public class AsmTransform extends Transform {
+public class ActivityTransform extends Transform {
     Project project;
 
-    public AsmTransform(Project project) {
+    public ActivityTransform(Project project) {
         this.project = project;
     }
 
@@ -78,7 +86,7 @@ public class AsmTransform extends Transform {
 
     @Override
     public String getName() {
-        return AsmTransform.class.getSimpleName();
+        return ActivityTransform.class.getSimpleName();
     }
 
     @Override
@@ -96,69 +104,88 @@ public class AsmTransform extends Transform {
         return true;
     }
 
+    // 普通类不做处理
     private void transformDir(File inputDir, File dstDir) {
         try {
-            if (dstDir.exists()) {
-                FileUtils.forceDelete(dstDir);
+            try {
+                if (dstDir.exists()) {
+                    FileUtils.forceDelete(dstDir);
+                }
+                FileUtils.forceMkdir(dstDir);
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-            FileUtils.forceMkdir(dstDir);
+            String inputDirPath = inputDir.getAbsolutePath();
+            String dstDirPath = dstDir.getAbsolutePath();
+            File[] files = inputDir.listFiles();
+            for (File file : files) {
+                System.out.println("transformDir-->" + file.getAbsolutePath());
+                String dstFilePath = file.getAbsolutePath();
+                dstFilePath = dstFilePath.replace(inputDirPath, dstDirPath);
+                File dstFile = new File(dstFilePath);
+                if (file.isDirectory()) {
+                    System.out.println("isDirectory-->" + file.getAbsolutePath());
+                    // 递归
+                    transformDir(file, dstFile);
+                } else if (file.isFile()) {
+                    System.out.println("isFile-->" + file.getAbsolutePath());
+                    // 转化单个class文件
+                    FileUtils.copyFile(file, dstFile);
+                }
+            }
+
         } catch (IOException e) {
             e.printStackTrace();
-        }
-
-        String inputDirPath = inputDir.getAbsolutePath();
-        String dstDirPath = dstDir.getAbsolutePath();
-        File[] files = inputDir.listFiles();
-        for (File file : files) {
-            System.out.println("transformDir-->" + file.getAbsolutePath());
-            String dstFilePath = file.getAbsolutePath();
-            dstFilePath = dstFilePath.replace(inputDirPath, dstDirPath);
-            File dstFile = new File(dstFilePath);
-            if (file.isDirectory()) {
-                System.out.println("isDirectory-->" + file.getAbsolutePath());
-                // 递归
-                transformDir(file, dstFile);
-            } else if (file.isFile()) {
-                System.out.println("isFile-->" + file.getAbsolutePath());
-                // 转化单个class文件
-                transformSingleFile(file, dstFile);
-            }
         }
     }
 
     /**
      * 转化jar
-     * 对jar暂不做处理，所以直接拷贝
-     *
+     * 步骤：
+     *      1.获取jar中class集合
+     *      2.遍历class,找到FragmentActivity.class, 进行插桩，拿到插桩后的class输入流写入临时jar，对于其他class,直接拷贝到临时jar
+     *      3.将临时jar拷贝到目的目录
+     *      4.删除临时jar
      * @param inputJarFile
      * @param dstFile
      */
     private void transformJar(File inputJarFile, File dstFile) {
         try {
-            FileUtils.copyFile(inputJarFile,dstFile);
+//            FileUtils.copyFile(inputJarFile,dstFile);
+            JarFile jarFile = new JarFile(inputJarFile);
+            File tempJarFile = new File(inputJarFile.getParent() + File.separator + "classes_tmp.jar");
+            if(tempJarFile.exists()){
+                FileUtils.forceDelete(tempJarFile);
+            }
+            JarOutputStream jarOutputStream=new JarOutputStream(new FileOutputStream(tempJarFile));
+            Enumeration<JarEntry> jarEntries = jarFile.entries();
+            // 遍历jar包中的.class文件
+            while(jarEntries.hasMoreElements()){
+                JarEntry jarEntry = jarEntries.nextElement();
+                String jarEntryName = jarEntry.getName();
+                System.out.println("ActivityTransform --- jarEntry-->"+jarEntryName);
+                ZipEntry zipEntry=new ZipEntry(jarEntryName);
+                InputStream jarEntryInputStream = jarFile.getInputStream(jarEntry);
+                if(jarEntryName.equals("android/support/v4/app/FragmentActivity.class")
+                ||jarEntryName.equals("androidx/fragment/app/FragmentActivity.class")){
+                    // 进行插桩
+                    // 修改原有class 重新写入
+                    System.out.println("find--->FragmentActivity, modifying...");
+                    jarOutputStream.putNextEntry(zipEntry);
+                    jarOutputStream.write(HookActivityUtil.getActivityByte(jarEntryInputStream));
+                }else{
+                    // 不进行操作 原封写入
+                    jarOutputStream.putNextEntry(zipEntry);
+                    jarOutputStream.write(IOUtils.toByteArray(jarEntryInputStream));
+                }
+                jarOutputStream.closeEntry();
+            }
+            jarOutputStream.close();
+            jarFile.close();
+            FileUtils.copyFile(tempJarFile,dstFile);
+            FileUtils.forceDelete(tempJarFile);
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    /**
-     * 转化class文件
-     * 注意：
-     * 这里只对InjectTest.class进行插桩，但是对于其他class要原封不动的拷贝过去，不然结果中就会缺少class
-     *
-     * @param inputFile
-     * @param dstFile
-     */
-    private void transformSingleFile(File inputFile, File dstFile) {
-        System.out.println("transformSingleFile-->" + inputFile.getAbsolutePath());
-        if (!inputFile.getAbsolutePath().contains("InjectTest")) {
-            try {
-                FileUtils.copyFile(inputFile, dstFile, true);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-            return;
-        }
-        AsmUtil.inject(inputFile, dstFile);
     }
 }

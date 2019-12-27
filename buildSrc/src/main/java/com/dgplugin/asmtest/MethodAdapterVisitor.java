@@ -1,4 +1,4 @@
-package com.dgplugin;
+package com.dgplugin.asmtest;
 
 import org.objectweb.asm.AnnotationVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -30,6 +30,7 @@ public class MethodAdapterVisitor extends AdviceAdapter {
      */
     protected MethodAdapterVisitor(int api, MethodVisitor methodVisitor, int access, String name, String descriptor) {
         super(api, methodVisitor, access, name, descriptor);
+        System.out.println("MethodAdapterVisitor()-->name:->"+name);
     }
 
     @Override
@@ -125,4 +126,5 @@ public class MethodAdapterVisitor extends AdviceAdapter {
             invokeVirtual(Type.getType("Ljava/io/PrintStream;"), new Method("println", "(Ljava/lang/String;)V"));
         }
     }
+
 }

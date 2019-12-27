@@ -1,4 +1,4 @@
-package com.dgplugin;
+package com.dgplugin.asmtest;
 
 import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.MethodVisitor;
@@ -15,8 +15,14 @@ public class ClassAdapterVisitor extends ClassVisitor {
 
     @Override
     public MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
-        System.out.println("方法名：" + name + ",签名：" + signature);
+        System.out.println("ClassAdapterVisitor#visitMethod()-->name：" + name + ",signature：" + signature);
         MethodVisitor methodVisitor = super.visitMethod(access, name, descriptor, signature, exceptions);
         return new MethodAdapterVisitor(api, methodVisitor, access, name, descriptor);
+    }
+
+    @Override
+    public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+        super.visit(version, access, name, signature, superName, interfaces);
+        System.out.println("ClassAdapterVisitor#visit()-->name：" + name + ",signature：" + signature);
     }
 }

@@ -1,4 +1,4 @@
-package com.dgplugin;
+package com.dgplugin.asmtest;
 
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.ClassWriter;

@@ -24,5 +24,6 @@ public class AsmPlugin implements Plugin<Project> {
     private void registerTransform(Project project) {
         AppExtension appExtension = project.getExtensions().getByType(AppExtension.class);
         appExtension.registerTransform(new AsmTransform(project));
+        appExtension.registerTransform(new ActivityTransform(project));
     }
 }
